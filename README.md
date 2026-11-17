@@ -1,0 +1,45 @@
+# Équilibre – suivi alimentaire par points
+
+Application web pour smartphone (installable sur l'écran d'accueil) qui :
+
+- **reconnaît les aliments avec la caméra**, directement dans le téléphone (réseau de neurones MobileNet via TensorFlow.js — aucune IA externe, aucune clé API) ;
+- **lit les codes-barres** des produits emballés et récupère leurs valeurs nutritionnelles dans la base ouverte Open Food Facts ;
+- **calcule les points** de chaque aliment et votre **budget quotidien** ;
+- tient le **journal des repas** (petit-déjeuner, déjeuner, dîner, collations) et l'historique de la semaine ;
+- suit votre **poids** avec une courbe et votre objectif ;
+- fonctionne **hors-ligne** après le premier lancement ;
+- peut **sauvegarder vos données dans Supabase** (compte e-mail / mot de passe) pour les retrouver sur tous vos appareils. Sans compte, tout reste sur le téléphone.
+
+## Les points
+
+```
+points = kcal/30 + graisses saturées/3 + sucres/8 − protéines/9 − fibres/10   (arrondi, minimum 0)
+```
+
+Les fruits et légumes frais nature sont des aliments libres (0 point). Le budget quotidien est calculé à partir de vos besoins (Mifflin-St Jeor × activité), moins 500 kcal si l'objectif est de perdre du poids, divisé par 30.
+
+## Lancer en local
+
+```bash
+npm install
+npm start          # http://localhost:3000
+npm test
+```
+
+La caméra en direct nécessite HTTPS (ou `localhost`). Sur un téléphone, déployez l'application (voir ci-dessous) ou utilisez le bouton « Importer », qui ouvre l'appareil photo.
+
+## Déployer
+
+Le dossier `public/` est un site statique : Vercel (`vercel.json` fourni), Netlify, GitHub Pages ou Supabase Storage conviennent.
+
+## Activer la synchronisation Supabase
+
+1. Réactivez le projet Supabase (tableau de bord → projet → *Restore*).
+2. Appliquez le schéma : SQL Editor → collez `supabase/migrations/20261117000000_equilibre_schema.sql` → *Run*.
+3. Copiez la clé *publishable* (Project Settings → API Keys) dans `public/config.js` (`SUPABASE_KEY`).
+
+Les tables `profiles`, `food_entries` et `weights` sont protégées par RLS : chaque utilisateur ne voit que ses données.
+
+## Limites
+
+La reconnaissance photo utilise un modèle généraliste qui connaît une soixantaine d'aliments (fruits, légumes, pizza, burger, pâtes, glace…). Pour un plat composé, vérifiez la proposition et ajustez la portion, ou utilisez la recherche et le code-barres.

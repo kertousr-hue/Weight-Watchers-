@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1f7a5c" />
+  <meta name="description" content="Suivi alimentaire par points avec reconnaissance des aliments par la caméra, sans IA externe." />
+  <title>Équilibre – points & poids</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Équilibre</h1>
+    <span id="sync-badge" class="badge" title="Où sont enregistrées vos données">Local</span>
+  </header>
+
+  <main>
+    <!-- AUJOURD'HUI -->
+    <section id="view-today" class="view active" aria-label="Journal du jour">
+      <div class="daynav">
+        <button class="icon-btn" id="prev-day" aria-label="Jour précédent">‹</button>
+        <strong id="day-label">Aujourd'hui</strong>
+        <button class="icon-btn" id="next-day" aria-label="Jour suivant">›</button>
+      </div>
+
+      <div class="card summary">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle cx="60" cy="60" r="52" class="ring-bg" />
+          <circle cx="60" cy="60" r="52" class="ring-fg" id="ring-fg" />
+        </svg>
+        <div class="ring-text">
+          <span id="points-left" class="big">0</span>
+          <span id="points-left-label">points restants</span>
+        </div>
+        <dl class="stats">
+          <div><dt>Budget</dt><dd id="stat-budget">–</dd></div>
+          <div><dt>Consommés</dt><dd id="stat-used">0</dd></div>
+          <div><dt>kcal</dt><dd id="stat-kcal">0</dd></div>
+        </dl>
+      </div>
+
+      <div class="week" id="week" aria-label="7 derniers jours"></div>
+
+      <div id="meals"></div>
+
+      <button class="btn primary wide" data-go="scan">📷 Scanner un aliment</button>
+    </section>
+
+    <!-- SCANNER -->
+    <section id="view-scan" class="view" aria-label="Scanner">
+      <div class="camera card">
+        <video id="video" playsinline muted></video>
+        <img id="snapshot" alt="Photo prise" hidden />
+        <div id="cam-placeholder" class="cam-placeholder">
+          <p>Visez votre assiette ou le code-barres d'un produit.</p>
+          <button class="btn primary" id="start-cam">Activer la caméra</button>
+        </div>
+        <div id="scan-overlay" class="scan-overlay" hidden></div>
+        <button id="retake" class="btn retake" hidden>↺ Reprendre</button>
+      </div>
+
+      <div class="scan-actions">
+        <button class="btn primary" id="btn-photo" disabled>📸 Reconnaître le plat</button>
+        <button class="btn" id="btn-barcode" disabled>▥ Code-barres</button>
+        <label class="btn" for="file-input">🖼️ Importer</label>
+        <input id="file-input" type="file" accept="image/*" capture="environment" hidden />
+      </div>
+
+      <p id="scan-status" class="status" role="status"></p>
+      <ul id="scan-results" class="results"></ul>
+
+      <div class="card">
+        <label class="field">
+          <span>Rechercher un aliment</span>
+          <input id="search" type="search" placeholder="ex. : pâtes, yaourt, pomme…" autocomplete="off" />
+        </label>
+        <ul id="search-results" class="results"></ul>
+        <details>
+          <summary>Code-barres à la main / aliment personnalisé</summary>
+          <form id="barcode-form" class="row">
+            <input id="barcode-input" inputmode="numeric" placeholder="Code EAN (13 chiffres)" />
+            <button class="btn">Chercher</button>
+          </form>
+          <form id="custom-form" class="grid2">
+            <label class="field full"><span>Nom</span><input name="name" required /></label>
+            <label class="field"><span>kcal / 100 g</span><input name="kcal" type="number" step="any" min="0" required /></label>
+            <label class="field"><span>Protéines / 100 g</span><input name="protein" type="number" step="any" min="0" value="0" /></label>
+            <label class="field"><span>Graisses saturées / 100 g</span><input name="satFat" type="number" step="any" min="0" value="0" /></label>
+            <label class="field"><span>Sucres / 100 g</span><input name="sugar" type="number" step="any" min="0" value="0" /></label>
+            <label class="field"><span>Fibres / 100 g</span><input name="fiber" type="number" step="any" min="0" value="0" /></label>
+            <label class="field"><span>Portion (g)</span><input name="portion" type="number" min="1" value="100" /></label>
+            <button class="btn primary full">Continuer</button>
+          </form>
+        </details>
+      </div>
+    </section>
+
+    <!-- POIDS -->
+    <section id="view-weight" class="view" aria-label="Poids">
+      <div class="card">
+        <form id="weight-form" class="row">
+          <input id="weight-input" type="number" step="0.1" min="20" max="400" placeholder="Poids du jour (kg)" required />
+          <button class="btn primary">Enregistrer</button>
+        </form>
+        <div id="weight-summary" class="weight-summary"></div>
+      </div>
+      <div class="card"><div id="weight-chart" class="chart"></div></div>
+      <ul id="weight-list" class="list"></ul>
+    </section>
+
+    <!-- PROFIL -->
+    <section id="view-profile" class="view" aria-label="Profil">
+      <form id="profile-form" class="card grid2">
+        <h2 class="full">Mon profil</h2>
+        <label class="field"><span>Sexe</span>
+          <select name="sex"><option value="femme">Femme</option><option value="homme">Homme</option></select>
+        </label>
+        <label class="field"><span>Âge</span><input name="age" type="number" min="10" max="120" required /></label>
+        <label class="field"><span>Taille (cm)</span><input name="heightCm" type="number" min="80" max="250" required /></label>
+        <label class="field"><span>Poids actuel (kg)</span><input name="weightKg" type="number" step="0.1" min="20" max="400" required /></label>
+        <label class="field"><span>Objectif (kg)</span><input name="goalWeight" type="number" step="0.1" min="20" max="400" /></label>
+        <label class="field"><span>Activité</span>
+          <select name="activity">
+            <option value="sedentaire">Sédentaire</option>
+            <option value="leger" selected>Légère</option>
+            <option value="modere">Modérée</option>
+            <option value="actif">Très active</option>
+          </select>
+        </label>
+        <label class="field full"><span>But</span>
+          <select name="goal"><option value="perdre">Perdre du poids</option><option value="maintenir">Maintenir mon poids</option></select>
+        </label>
+        <p class="full hint" id="budget-preview"></p>
+        <button class="btn primary full">Enregistrer</button>
+      </form>
+
+      <div class="card" id="account-card">
+        <h2>Compte & synchronisation</h2>
+        <div id="account-off">
+          <p class="hint">Sans compte, vos données restent uniquement sur ce téléphone. Avec un compte (Supabase), elles sont sauvegardées et accessibles sur tous vos appareils.</p>
+          <form id="auth-form" class="grid2">
+            <label class="field full"><span>E-mail</span><input name="email" type="email" autocomplete="email" required /></label>
+            <label class="field full"><span>Mot de passe</span><input name="password" type="password" minlength="6" autocomplete="current-password" required /></label>
+            <button class="btn primary" value="login">Se connecter</button>
+            <button class="btn" value="signup">Créer un compte</button>
+          </form>
+        </div>
+        <div id="account-on" hidden>
+          <p>Connecté : <strong id="account-email"></strong></p>
+          <button class="btn" id="upload-local" hidden>Envoyer les données de ce téléphone vers mon compte</button>
+          <button class="btn" id="logout">Se déconnecter</button>
+        </div>
+        <p id="account-disabled" class="hint" hidden>Synchronisation non configurée : ajoutez la clé Supabase dans <code>config.js</code>.</p>
+        <p id="account-status" class="status" role="status"></p>
+      </div>
+
+      <div class="card hint">
+        <h2>Comment sont calculés les points ?</h2>
+        <p>Points = kcal ÷ 30 + graisses saturées ÷ 3 + sucres ÷ 8 − protéines ÷ 9 − fibres ÷ 10 (arrondi, jamais négatif).</p>
+        <p>Les fruits et légumes frais nature sont <strong>libres</strong> : 0 point.</p>
+        <p>Votre budget quotidien vient de vos besoins énergétiques (formule de Mifflin-St Jeor), avec un déficit de 500 kcal si vous voulez perdre du poids.</p>
+        <p>La reconnaissance photo fonctionne dans votre téléphone, sans service d'IA. Elle connaît une soixantaine d'aliments : vérifiez toujours la proposition et la portion.</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Navigation">
+    <button data-go="today" class="active"><span>🍽️</span>Journal</button>
+    <button data-go="scan"><span>📷</span>Scanner</button>
+    <button data-go="weight"><span>⚖️</span>Poids</button>
+    <button data-go="profile"><span>👤</span>Profil</button>
+  </nav>
+
+  <!-- Fenêtre d'ajout -->
+  <dialog id="add-dialog">
+    <form method="dialog" id="add-form">
+      <h2 id="add-name">Aliment</h2>
+      <div class="add-points"><span id="add-points" class="big">0</span> points</div>
+      <label class="field"><span>Portion (g ou ml)</span>
+        <div class="row">
+          <button type="button" class="icon-btn" data-step="-10">−</button>
+          <input id="add-grams" type="number" min="1" step="1" required />
+          <button type="button" class="icon-btn" data-step="10">+</button>
+        </div>
+      </label>
+      <label class="field"><span>Repas</span>
+        <select id="add-meal">
+          <option value="petit-dejeuner">Petit-déjeuner</option>
+          <option value="dejeuner">Déjeuner</option>
+          <option value="diner">Dîner</option>
+          <option value="collation">Collation</option>
+        </select>
+      </label>
+      <p class="hint" id="add-details"></p>
+      <div class="row">
+        <button class="btn" value="cancel" formnovalidate>Annuler</button>
+        <button class="btn primary" value="ok">Ajouter</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="vendor/supabase.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
