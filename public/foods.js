@@ -337,6 +337,10 @@ export const LABEL_MAP = [
   ["beer glass", "Bière"],
   ["beer bottle", "Bière"],
   ["pop bottle", "Soda sucré"],
+  ["water bottle", "Eau"],
+  ["wine bottle", "Vin rouge"],
+  ["cup", "Café noir"],
+  ["coffee mug", "Café noir"],
 ];
 
 export function findFood(name) {

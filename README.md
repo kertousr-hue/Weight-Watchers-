@@ -48,4 +48,4 @@ Tables : `profiles`, `food_entries`, `weights`, `day_logs` (eau), `activities` e
 
 ## Limites
 
-La reconnaissance photo utilise un modèle généraliste qui connaît une soixantaine d'aliments (fruits, légumes, pizza, burger, pâtes, glace…). Pour un plat composé, vérifiez la proposition et ajustez la portion, ou utilisez la recherche et le code-barres.
+La reconnaissance photo utilise un modèle généraliste qui connaît une soixantaine d'aliments (fruits, légumes, pizza, burger, pâtes, glace…). Elle **apprend** : quand une photo n'est pas reconnue et que vous choisissez l'aliment dans la recherche, l'empreinte de la photo (pas l'image) est enregistrée dans votre compte (table `food_examples`) et la photo suivante du même aliment est reconnue. Pour un produit emballé (canette, paquet), le code-barres est aussi cherché sur la photo et donne la valeur exacte.

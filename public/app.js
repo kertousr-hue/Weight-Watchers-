@@ -1,6 +1,6 @@
 import { FOODS } from "./foods.js";
 import { computePoints, scaleNutrition, dailyBudget, bmi, ACTIVITIES, activityPoints } from "./points.js";
-import { store, initStore, supabase, uploadLocalData, hasLocalData, prefs, importAll, loadCatalog, cachedCatalog, saveFood, findFoodByBarcode } from "./store.js";
+import { store, initStore, supabase, uploadLocalData, hasLocalData, prefs, importAll, loadCatalog, cachedCatalog, saveFood, findFoodByBarcode, listExamples, addExample, resetExamplesCache } from "./store.js";
 import { classifyImage, loadModel, detectBarcode, lookupBarcode } from "./recognize.js";
 
 const $ = (s) => document.querySelector(s);
@@ -50,6 +50,7 @@ function guessMeal() {
 
 // ---------- Navigation ----------
 function go(view) {
+  state.lastEmbedding = null;
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + view));
   document.querySelectorAll(".tabbar button").forEach((b) => b.classList.toggle("active", b.dataset.go === view));
   if (view !== "scan") stopCamera();
@@ -540,6 +541,13 @@ $("#add-dialog").addEventListener("close", async () => {
     }
     await store.addEntry({ ...row, eaten_on: state.day, name: current.name });
     remember(current);
+    if (state.lastEmbedding) {
+      const emb = state.lastEmbedding;
+      state.lastEmbedding = null;
+      addExample(current, emb)
+        .then(() => toast(`${current.name} ajouté · photo mémorisée pour la prochaine fois`))
+        .catch(() => {});
+    }
     toast(`${current.name} ajouté`);
     go("today");
   } catch (err) {
@@ -690,27 +698,56 @@ function stopCamera() {
 }
 $("#start-cam").addEventListener("click", startCamera);
 
+// Boissons proposées quand la photo montre un emballage non reconnu (canette, bouteille…)
+const DRINKS = ["Soda sucré", "Soda zéro", "Bière", "Eau", "Jus d'orange", "Sirop à l'eau", "Smoothie"];
+
 async function recognize(imgSource) {
   const status = $("#scan-status");
   status.textContent = "Analyse en cours dans votre téléphone…";
   $("#scan-results").innerHTML = "";
   try {
-    const { matches, raw } = await classifyImage(imgSource);
-    scanFoods = matches.map((m) => m.food);
-    if (!matches.length) {
-      status.textContent = "Aliment non reconnu. Recherchez-le ci-dessous ou scannez son code-barres.";
-      console.info("Prédictions brutes :", raw);
+    const examples = await listExamples().catch(() => []);
+    const { matches, packaging, embedding, raw } = await classifyImage(imgSource, examples);
+    state.lastEmbedding = embedding; // pour apprendre si l'utilisateur corrige
+    console.info("Prédictions brutes :", raw);
+    let list = matches.slice(0, 5);
+    // Emballage sans aliment reconnu : on propose les boissons courantes
+    if (packaging && !list.some((m) => m.learned)) {
+      const names = new Set(list.map((m) => m.food.name));
+      for (const n of DRINKS) {
+        const food = catalog().find((f) => f.name === n) ?? FOODS.find((f) => f.name === n);
+        if (food && !names.has(n)) list.push({ food, probability: null });
+      }
+    }
+    scanFoods = list.map((m) => m.food);
+    const teach = "Pas le bon ? Cherchez l'aliment ci-dessous : l'application retiendra cette photo pour la prochaine fois.";
+    if (!list.length) {
+      status.textContent = "Aliment non reconnu. Cherchez-le ci-dessous : l'application retiendra cette photo pour la prochaine fois.";
       $("#search").focus();
       return;
     }
-    status.textContent = "Touchez l'aliment correspondant pour l'ajouter :";
-    $("#scan-results").innerHTML = matches
-      .slice(0, 5)
-      .map((m) => foodItem(m.food, `<span class="prob">· ${Math.round(m.probability * 100)} % sûr</span>`))
+    status.innerHTML = packaging && !matches.some((m) => m.learned)
+      ? `<strong>Produit emballé :</strong> pour la valeur exacte, scannez son code-barres (▥). Sinon, choisissez :<br><small>${teach}</small>`
+      : `Touchez l'aliment correspondant pour l'ajouter.<br><small>${teach}</small>`;
+    $("#scan-results").innerHTML = list
+      .map((m) =>
+        foodItem(
+          m.food,
+          m.learned ? `<span class="prob">· déjà vu ✓</span>` : m.probability != null ? `<span class="prob">· ${Math.round(m.probability * 100)} % sûr</span>` : ""
+        )
+      )
       .join("");
   } catch (err) {
     status.textContent = "La reconnaissance a échoué : " + err.message + ". Vérifiez la connexion au premier lancement (téléchargement du modèle).";
   }
+}
+
+// Photo : on cherche d'abord un code-barres (valeur exacte), sinon on reconnaît l'aliment.
+async function analyzePhoto(img) {
+  $("#scan-status").textContent = "Analyse en cours dans votre téléphone…";
+  const code = await detectBarcode(img).catch(() => null);
+  if (code) return handleBarcode(code);
+  return recognize(img);
 }
 
 $("#btn-photo").addEventListener("click", async () => {
@@ -732,7 +769,7 @@ $("#btn-photo").addEventListener("click", async () => {
   $("#cam-placeholder").hidden = true;
   await img.decode();
   $("#retake").hidden = false;
-  await recognize(img);
+  await analyzePhoto(img);
 });
 $("#retake").addEventListener("click", () => {
   $("#retake").hidden = true;
@@ -751,9 +788,7 @@ $("#file-input").addEventListener("change", async (e) => {
   $("#cam-placeholder").hidden = true;
   $("#retake").hidden = false;
   await img.decode();
-  const code = await detectBarcode(img).catch(() => null);
-  if (code) await handleBarcode(code);
-  else await recognize(img);
+  await analyzePhoto(img);
   e.target.value = "";
 });
 
@@ -876,6 +911,7 @@ $("#weight-list").addEventListener("click", async (e) => {
   });
   const wanted = new URLSearchParams(location.search).get("view"); // raccourcis de l'icône
   const enter = async (view) => {
+    resetExamplesCache();
     if (!(await applyAuthState())) return;
     refreshCatalog();
     await loadProfile();

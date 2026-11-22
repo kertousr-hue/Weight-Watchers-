@@ -335,6 +335,28 @@ export async function findFoodByBarcode(code) {
   return data ? toFood(data) : null;
 }
 
+// ---------- Photos apprises ----------
+let examplesCache = null;
+export async function listExamples() {
+  if (examplesCache) return examplesCache;
+  if (store.mode === "cloud") {
+    const { data, error } = await supabase.from("food_examples").select("food, embedding").order("created_at", { ascending: false }).limit(300);
+    if (!error) examplesCache = data;
+  }
+  examplesCache ??= LS.get("examples", []);
+  return examplesCache;
+}
+export async function addExample(food, embedding) {
+  const { id, mine, ...f } = food;
+  const row = { food: f, embedding: embedding.map((x) => Math.round(x * 1e4) / 1e4) };
+  if (store.mode === "cloud") check(await supabase.from("food_examples").insert(row));
+  else LS.set("examples", [row, ...LS.get("examples", [])].slice(0, 100));
+  examplesCache = [row, ...(examplesCache ?? [])];
+}
+export function resetExamplesCache() {
+  examplesCache = null;
+}
+
 export function hasLocalData() {
   return ["entries", "weights", "activities"].some((k) => LS.get(k, []).length > 0);
 }

@@ -1,6 +1,7 @@
 // Reconnaissance des aliments 100 % dans le téléphone (aucune IA externe) :
 //  - photo : réseau de neurones MobileNet (TensorFlow.js) exécuté localement ;
-//  - code-barres : lecteur intégré au navigateur + base ouverte Open Food Facts.
+//  - code-barres : lecteur du navigateur ou ZXing + base ouverte Open Food Facts ;
+//  - apprentissage : chaque photo corrigée par l'utilisateur est mémorisée (empreinte).
 import { LABEL_MAP, findFood } from "./foods.js";
 
 let modelPromise = null;
@@ -28,22 +29,64 @@ export function loadModel() {
   return modelPromise;
 }
 
-// Renvoie les aliments de la base qui correspondent à la photo, du plus probable au moins probable.
-export async function classifyImage(imgEl) {
+// Catégories du modèle qui trahissent un emballage (canette, bouteille, brique…).
+// Les canettes sont souvent vues comme « shaker », « filtre à huile » ou « ouvre-boîte ».
+const PACKAGING = [
+  "pop bottle", "water bottle", "beer bottle", "wine bottle", "water jug", "whiskey jug", "milk can",
+  "can opener", "cocktail shaker", "oil filter", "packet", "carton", "pill bottle", "lotion", "beer glass",
+];
+
+const norm = (v) => {
+  const n = Math.hypot(...v) || 1;
+  return v.map((x) => x / n);
+};
+const cosine = (a, b) => {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+  return s;
+};
+// Seuil de ressemblance au-delà duquel une photo apprise est reconnue
+export const SIMILARITY_THRESHOLD = 0.8;
+
+// Analyse une photo. `examples` = photos apprises [{ food, embedding }].
+// Renvoie les aliments probables, si c'est un emballage, et l'empreinte de la photo.
+export async function classifyImage(imgEl, examples = []) {
   const model = await loadModel();
   const predictions = await model.classify(imgEl, 15);
+  const t = model.infer(imgEl, true); // empreinte (vecteur) de la photo
+  const embedding = norm(Array.from(t.dataSync ? t.dataSync() : t.arraySync().flat()));
+  t.dispose?.();
+
   const scores = new Map();
-  for (const p of predictions) {
-    const label = p.className.toLowerCase();
-    const hit = LABEL_MAP.find(([key]) => label.split(/,\s*/).some((part) => part.includes(key)));
+  // 1) photos apprises : la plus ressemblante
+  const learned = new Map();
+  for (const ex of examples) {
+    if (ex.embedding.length !== embedding.length) continue;
+    const sim = cosine(embedding, ex.embedding);
+    if (sim >= SIMILARITY_THRESHOLD && sim > (learned.get(ex.food.name)?.sim ?? 0)) learned.set(ex.food.name, { food: ex.food, sim });
+  }
+  // 2) catégories connues du modèle
+  const labels = predictions.map((p) => ({ parts: p.className.toLowerCase().split(/,\s*/), probability: p.probability }));
+  for (const { parts, probability } of labels) {
+    const hit = LABEL_MAP.find(([key]) => parts.some((part) => part.includes(key)));
     if (!hit) continue;
     const food = findFood(hit[1]);
-    scores.set(food, (scores.get(food) ?? 0) + p.probability);
+    scores.set(food, (scores.get(food) ?? 0) + probability);
   }
+  const packaging = labels
+    .slice(0, 5)
+    .some(({ parts, probability }) => probability >= 0.03 && parts.some((part) => PACKAGING.some((k) => part.includes(k))));
+
   return {
-    matches: [...scores.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([food, probability]) => ({ food, probability })),
+    matches: [
+      ...[...learned.values()].sort((a, b) => b.sim - a.sim).map(({ food, sim }) => ({ food, probability: sim, learned: true })),
+      ...[...scores.entries()]
+        .filter(([food]) => !learned.has(food.name))
+        .sort((a, b) => b[1] - a[1])
+        .map(([food, probability]) => ({ food, probability })),
+    ],
+    packaging,
+    embedding,
     raw: predictions.slice(0, 3),
   };
 }
