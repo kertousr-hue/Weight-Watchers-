@@ -1,6 +1,6 @@
 // Cache hors-ligne : l'application et le modèle de reconnaissance sont gardés
 // sur le téléphone après le premier lancement.
-const VERSION = "equilibre-v1";
+const VERSION = "equilibre-v2";
 const SHELL = [
   "./", "index.html", "styles.css", "app.js", "points.js", "foods.js", "store.js", "recognize.js",
   "config.js", "manifest.webmanifest", "icon.svg", "vendor/supabase.js", "vendor/tf.min.js", "vendor/mobilenet.min.js",

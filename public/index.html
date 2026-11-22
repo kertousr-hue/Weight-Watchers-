@@ -44,8 +44,19 @@
       </div>
 
       <div class="week" id="week" aria-label="7 derniers jours"></div>
+      <p id="week-balance" class="hint center"></p>
 
       <div id="meals"></div>
+
+      <div class="card">
+        <div class="row-between"><h2>💧 Eau</h2><span id="water-count" class="hint"></span></div>
+        <div class="glasses" id="glasses"></div>
+      </div>
+
+      <div class="card">
+        <div class="row-between"><h2>🏃 Activités</h2><button class="btn small" id="add-activity">+ Ajouter</button></div>
+        <ul id="activity-list" class="list"></ul>
+      </div>
 
       <button class="btn primary wide" data-go="scan">📷 Scanner un aliment</button>
     </section>
@@ -147,6 +158,7 @@
             <label class="field full"><span>Mot de passe</span><input name="password" type="password" minlength="6" autocomplete="current-password" required /></label>
             <button class="btn primary" value="login">Se connecter</button>
             <button class="btn" value="signup">Créer un compte</button>
+            <button class="link full" value="reset" formnovalidate>Mot de passe oublié ?</button>
           </form>
         </div>
         <div id="account-on" hidden>
@@ -158,10 +170,26 @@
         <p id="account-status" class="status" role="status"></p>
       </div>
 
+      <div class="card">
+        <h2>📊 Mes statistiques</h2>
+        <div id="stats" class="weight-summary"></div>
+      </div>
+
+      <div class="card">
+        <h2>💾 Sauvegarde</h2>
+        <p class="hint">Téléchargez toutes vos données dans un fichier, ou restaurez un fichier de sauvegarde.</p>
+        <div class="row">
+          <button class="btn" id="export-btn">⬇️ Exporter</button>
+          <label class="btn" for="import-input">⬆️ Importer</label>
+          <input id="import-input" type="file" accept="application/json,.json" hidden />
+        </div>
+      </div>
+
       <div class="card hint">
         <h2>Comment sont calculés les points ?</h2>
         <p>Points = kcal ÷ 30 + graisses saturées ÷ 3 + sucres ÷ 8 − protéines ÷ 9 − fibres ÷ 10 (arrondi, jamais négatif).</p>
         <p>Les fruits et légumes frais nature sont <strong>libres</strong> : 0 point.</p>
+        <p>Les activités physiques ajoutent des points bonus à la journée (la moitié de l'énergie dépensée, par prudence).</p>
         <p>Votre budget quotidien vient de vos besoins énergétiques (formule de Mifflin-St Jeor), avec un déficit de 500 kcal si vous voulez perdre du poids.</p>
         <p>La reconnaissance photo fonctionne dans votre téléphone, sans service d'IA. Elle connaît une soixantaine d'aliments : vérifiez toujours la proposition et la portion.</p>
       </div>
@@ -196,6 +224,21 @@
         </select>
       </label>
       <p class="hint" id="add-details"></p>
+      <div class="row">
+        <button class="btn" value="cancel" formnovalidate>Annuler</button>
+        <button class="btn primary" value="ok" id="add-ok">Ajouter</button>
+      </div>
+      <button class="link danger" value="delete" id="add-delete" formnovalidate hidden>Supprimer cet aliment</button>
+    </form>
+  </dialog>
+
+  <!-- Fenêtre d'activité -->
+  <dialog id="act-dialog">
+    <form method="dialog">
+      <h2>Ajouter une activité</h2>
+      <label class="field"><span>Activité</span><select id="act-type"></select></label>
+      <label class="field"><span>Durée (minutes)</span><input id="act-minutes" type="number" min="1" max="600" value="30" required /></label>
+      <p class="hint" id="act-preview"></p>
       <div class="row">
         <button class="btn" value="cancel" formnovalidate>Annuler</button>
         <button class="btn primary" value="ok">Ajouter</button>

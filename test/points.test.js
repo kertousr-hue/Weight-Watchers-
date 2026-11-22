@@ -28,3 +28,10 @@ test("chaque catégorie reconnue pointe vers un aliment existant", () => {
   for (const [, name] of LABEL_MAP) assert.ok(findFood(name), name);
   assert.equal(new Set(FOODS.map((f) => f.name)).size, FOODS.length, "noms en double");
 });
+
+import { activityPoints } from "../public/points.js";
+test("30 min de marche rapide à 80 kg rapportent quelques points", () => {
+  const r = activityPoints({ met: 4.8, minutes: 30, weightKg: 80 });
+  assert.equal(r.kcal, 192);
+  assert.equal(r.points, 3);
+});

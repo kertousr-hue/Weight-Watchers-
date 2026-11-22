@@ -186,3 +186,23 @@ dialog .row .btn { flex: 1; }
   .summary { grid-template-columns: 1fr; justify-items: center; }
   .stats { width: 100%; }
 }
+
+/* Ajouts */
+.center { text-align: center; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.row-between h2 { margin: 0; }
+.btn.small { min-height: 36px; padding: 0 12px; font-size: .85rem; }
+.link { border: none; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; padding: 6px 2px; }
+.link.danger { color: var(--warn); }
+.meal-actions { display: flex; gap: 14px; padding: 0 2px; }
+.tap { cursor: pointer; }
+.pos { color: var(--free); }
+.neg { color: var(--warn); }
+.glasses { display: flex; flex-wrap: wrap; gap: 8px; }
+.glass {
+  width: 30px; height: 40px; border: 2px solid var(--accent); border-top-width: 1px;
+  border-radius: 3px 3px 9px 9px; background: transparent; cursor: pointer; padding: 0;
+}
+.glass.full { background: linear-gradient(to top, #5bb4e5 75%, transparent 75%); border-color: #3a95c9; }
+.star { border: none; background: none; font-size: 1.3rem; color: var(--muted); cursor: pointer; padding: 2px 4px; }
+.star.on { color: #e0a100; }

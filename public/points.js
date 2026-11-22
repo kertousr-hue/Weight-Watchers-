@@ -44,3 +44,27 @@ export function bmi(weightKg, heightCm) {
   const m = heightCm / 100;
   return weightKg / (m * m);
 }
+
+// Activités physiques : valeur MET (dépense énergétique relative au repos).
+export const ACTIVITIES = [
+  { name: "Marche normale", met: 3.5 },
+  { name: "Marche rapide", met: 4.8 },
+  { name: "Course à pied", met: 9 },
+  { name: "Vélo (balade)", met: 5.5 },
+  { name: "Vélo (sportif)", met: 8 },
+  { name: "Natation", met: 7 },
+  { name: "Musculation", met: 5 },
+  { name: "Fitness / cardio", met: 7 },
+  { name: "Yoga / Pilates", met: 3 },
+  { name: "Danse", met: 5 },
+  { name: "Football / sport collectif", met: 7.5 },
+  { name: "Ménage / jardinage", met: 3.5 },
+  { name: "Montée d'escaliers", met: 8 },
+];
+
+// kcal dépensées = MET × poids (kg) × durée (h). On ne rend en points que la
+// moitié de cette énergie, par prudence (les estimations sont souvent trop optimistes).
+export function activityPoints({ met, minutes, weightKg }) {
+  const kcal = met * (weightKg || 70) * (minutes / 60);
+  return { kcal: Math.round(kcal), points: Math.max(0, Math.round(kcal / 60)) };
+}
