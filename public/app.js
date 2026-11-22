@@ -1,7 +1,7 @@
 import { FOODS } from "./foods.js";
 import { computePoints, scaleNutrition, dailyBudget, bmi, ACTIVITIES, activityPoints } from "./points.js";
 import { store, initStore, supabase, uploadLocalData, hasLocalData, prefs, importAll, loadCatalog, cachedCatalog, saveFood, findFoodByBarcode } from "./store.js";
-import { classifyImage, loadModel, barcodeSupported, detectBarcode, lookupBarcode } from "./recognize.js";
+import { classifyImage, loadModel, detectBarcode, lookupBarcode } from "./recognize.js";
 
 const $ = (s) => document.querySelector(s);
 const MEALS = [
@@ -668,12 +668,15 @@ async function startCamera() {
     $("#cam-placeholder").hidden = true;
     $("#snapshot").hidden = true;
     video.hidden = false;
-    $("#btn-photo").disabled = false;
-    $("#btn-barcode").disabled = !barcodeSupported;
-    status.textContent = barcodeSupported ? "" : "Lecture de code-barres non prise en charge par ce navigateur : tapez le code à la main.";
+    status.textContent = "";
     loadModel().catch(() => {}); // préchargement
+    return true;
   } catch (err) {
-    status.textContent = "Accès à la caméra refusé ou impossible (" + err.name + "). Utilisez « Importer ».";
+    status.textContent =
+      err.name === "NotAllowedError"
+        ? "Accès à la caméra refusé : autorisez la caméra pour ce site dans les réglages du navigateur (icône 🔒 à côté de l'adresse), ou utilisez « Importer »."
+        : "Caméra indisponible (" + err.name + "). Utilisez « Importer » pour prendre une photo.";
+    return false;
   }
 }
 function stopCamera() {
@@ -684,8 +687,6 @@ function stopCamera() {
   stream = null;
   $("#video").srcObject = null;
   $("#cam-placeholder").hidden = false;
-  $("#btn-photo").disabled = true;
-  $("#btn-barcode").disabled = true;
 }
 $("#start-cam").addEventListener("click", startCamera);
 
@@ -713,6 +714,11 @@ async function recognize(imgSource) {
 }
 
 $("#btn-photo").addEventListener("click", async () => {
+  if (!stream) {
+    $("#retake").hidden = true;
+    if (await startCamera()) $("#scan-status").textContent = "Visez votre assiette puis touchez à nouveau « Reconnaître le plat ».";
+    return;
+  }
   const video = $("#video");
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
@@ -751,20 +757,35 @@ $("#file-input").addEventListener("change", async (e) => {
   e.target.value = "";
 });
 
-$("#btn-barcode").addEventListener("click", () => {
+$("#btn-barcode").addEventListener("click", async () => {
   if (barcodeLoop) return;
+  // Le bouton allume la caméra lui-même si besoin
+  if (!stream) {
+    $("#retake").hidden = true;
+    $("#snapshot").hidden = true;
+    if (!(await startCamera())) return;
+  }
   $("#scan-overlay").hidden = false;
-  $("#scan-status").textContent = "Placez le code-barres dans le cadre…";
+  const status = $("#scan-status");
+  status.textContent = "Placez le code-barres dans le cadre, bien éclairé, à 10–20 cm…";
+  const started = Date.now();
+  let busy = false;
   barcodeLoop = setInterval(async () => {
+    if (busy) return;
+    busy = true;
     const code = await detectBarcode($("#video")).catch(() => null);
+    busy = false;
+    if (!barcodeLoop) return;
     if (code) {
       clearInterval(barcodeLoop);
       barcodeLoop = null;
       navigator.vibrate?.(80);
       stopCamera();
       await handleBarcode(code);
+    } else if (Date.now() - started > 20000) {
+      status.textContent = "Code non lu : rapprochez ou éloignez le téléphone, ou tapez le code sous « Code-barres à la main ».";
     }
-  }, 300);
+  }, 250);
 });
 
 async function handleBarcode(code) {

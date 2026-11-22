@@ -1,10 +1,10 @@
 // Cache hors-ligne : l'application et le modèle de reconnaissance sont gardés
 // sur le téléphone après le premier lancement.
-const VERSION = "equilibre-v4";
+const VERSION = "equilibre-v5";
 const SHELL = [
   "./", "index.html", "styles.css", "app.js", "points.js", "foods.js", "store.js", "recognize.js",
   "config.js", "manifest.webmanifest", "icon.svg", "icons/icon-192.png", "icons/icon-512.png",
-  "icons/maskable-192.png", "icons/maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png", "vendor/supabase.js", "vendor/tf.min.js", "vendor/mobilenet.min.js",
+  "icons/maskable-192.png", "icons/maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png", "vendor/supabase.js", "vendor/tf.min.js", "vendor/mobilenet.min.js", "vendor/zxing.min.js",
 ];
 // Hôtes qui servent les fichiers du modèle MobileNet
 const MODEL_HOSTS = ["tfhub.dev", "www.kaggle.com", "storage.googleapis.com", "kaggle.com"];

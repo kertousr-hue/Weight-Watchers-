@@ -49,13 +49,64 @@ export async function classifyImage(imgEl) {
 }
 
 // ---------- Codes-barres ----------
-export const barcodeSupported = "BarcodeDetector" in window;
+// 1) lecteur intégré au navigateur (BarcodeDetector) quand il existe ;
+// 2) sinon, ou s'il ne trouve rien, lecteur ZXing embarqué (fonctionne partout, iPhone compris).
+const FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"];
+let nativeDetector;
+let zxing;
+let tick = 0;
 
+async function nativeDetect(source) {
+  if (!("BarcodeDetector" in window)) return null;
+  try {
+    if (nativeDetector === undefined) {
+      const supported = await window.BarcodeDetector.getSupportedFormats?.().catch(() => FORMATS) ?? FORMATS;
+      const formats = FORMATS.filter((f) => supported.includes(f));
+      nativeDetector = formats.length ? new window.BarcodeDetector({ formats }) : null;
+    }
+    if (!nativeDetector) return null;
+    const codes = await nativeDetector.detect(source);
+    return codes[0]?.rawValue ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function zxingDetect(source) {
+  if (!window.ZXing) await loadScript("vendor/zxing.min.js");
+  const Z = window.ZXing;
+  if (!zxing) {
+    const hints = new Map();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]);
+    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+    zxing = { reader: new Z.MultiFormatReader(), hints, canvas: document.createElement("canvas") };
+    zxing.reader.setHints(hints);
+  }
+  const w = source.videoWidth || source.naturalWidth || source.width;
+  const h = source.videoHeight || source.naturalHeight || source.height;
+  if (!w || !h) return null;
+  const scale = Math.min(1, 1000 / w);
+  const c = zxing.canvas;
+  c.width = Math.round(w * scale);
+  c.height = Math.round(h * scale);
+  c.getContext("2d", { willReadFrequently: true }).drawImage(source, 0, 0, c.width, c.height);
+  try {
+    const bitmap = new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(c)));
+    return zxing.reader.decodeWithState(bitmap).getText();
+  } catch {
+    return null; // aucun code trouvé dans cette image
+  } finally {
+    zxing.reader.reset();
+  }
+}
+
+// Cherche un code-barres dans une image ou une vidéo. Renvoie le code ou null.
 export async function detectBarcode(source) {
-  if (!barcodeSupported) return null;
-  const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
-  const codes = await detector.detect(source);
-  return codes[0]?.rawValue ?? null;
+  const code = await nativeDetect(source);
+  if (code) return code;
+  // ZXing une image sur deux en vidéo (plus lent), à chaque fois pour une photo
+  if (source instanceof HTMLVideoElement && "BarcodeDetector" in window && tick++ % 2) return null;
+  return zxingDetect(source);
 }
 
 export async function lookupBarcode(code) {
