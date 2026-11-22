@@ -215,3 +215,11 @@ dialog .row .btn { flex: 1; }
 }
 .banner.muted { background: var(--line); color: var(--muted); }
 @media (display-mode: standalone) { .topbar { padding-top: calc(10px + env(safe-area-inset-top)); } }
+
+/* Écran de connexion */
+body.locked main, body.locked .tabbar { display: none; }
+body.locked { padding-bottom: 0; }
+.gate { max-width: 440px; margin: 0 auto; padding: 28px 16px; text-align: center; }
+.gate img { border-radius: 22px; margin-bottom: 12px; }
+.gate h2 { font-size: 1.4rem; margin-bottom: 6px; }
+.gate form { text-align: left; margin-top: 18px; }

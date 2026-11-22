@@ -181,21 +181,52 @@ $("#profile-form").addEventListener("submit", async (e) => {
 function renderAccount() {
   const badge = $("#sync-badge");
   if (!supabase) {
-    $("#account-off").hidden = true;
     $("#account-on").hidden = true;
     $("#account-disabled").hidden = false;
     badge.textContent = "Local";
     return;
   }
   const user = store.mode === "cloud" ? store.user : null;
-  $("#account-off").hidden = !!user;
   $("#account-on").hidden = !user;
   $("#account-disabled").hidden = true;
-  if (user) {
-    $("#account-email").textContent = user.email;
-    $("#upload-local").hidden = !hasLocalData();
+  if (user) $("#account-email").textContent = user.email;
+  badge.textContent = !user ? "Non connecté" : navigator.onLine ? "☁︎ En ligne" : "Hors-ligne";
+}
+
+// ---------- Connexion obligatoire ----------
+// Avec Supabase configuré, l'application n'est utilisable qu'une fois connecté :
+// toutes les données sont alors enregistrées en ligne.
+async function applyAuthState() {
+  const loggedIn = !supabase || store.mode === "cloud";
+  document.body.classList.toggle("locked", !loggedIn);
+  $("#auth-gate").hidden = loggedIn;
+  renderAccount();
+  if (!loggedIn) return false;
+  // Données notées avant la connexion sur ce téléphone : on les envoie en ligne.
+  if (supabase && hasLocalData()) {
+    try {
+      const n = await uploadLocalData();
+      if (n) toast(`${n} éléments de ce téléphone enregistrés en ligne`);
+    } catch (err) {
+      toast("Envoi des anciennes données impossible : " + err.message);
+    }
   }
-  badge.textContent = user ? "☁︎ Synchronisé" : "Local";
+  return true;
+}
+
+// Messages d'erreur de connexion en français
+function authMessage(error) {
+  const m = error?.message ?? "";
+  const map = [
+    [/invalid login credentials/i, "E-mail ou mot de passe incorrect."],
+    [/email not confirmed/i, "Adresse e-mail pas encore confirmée : ouvrez le lien reçu par e-mail."],
+    [/already registered|already exists/i, "Un compte existe déjà avec cet e-mail : connectez-vous."],
+    [/password should be at least|weak password/i, "Mot de passe trop court (6 caractères minimum)."],
+    [/invalid.*email|unable to validate email/i, "Adresse e-mail invalide."],
+    [/rate limit|too many/i, "Trop de tentatives : réessayez dans quelques minutes."],
+    [/failed to fetch|network/i, "Pas de connexion Internet."],
+  ];
+  return map.find(([re]) => re.test(m))?.[1] ?? m;
 }
 
 $("#auth-form").addEventListener("submit", async (e) => {
@@ -207,7 +238,7 @@ $("#auth-form").addEventListener("submit", async (e) => {
   if (action === "reset") {
     if (!email) return (status.textContent = "Saisissez votre e-mail d'abord.");
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
-    status.textContent = error ? error.message : "E-mail envoyé : suivez le lien pour choisir un nouveau mot de passe.";
+    status.textContent = error ? authMessage(error) : "E-mail envoyé : suivez le lien pour choisir un nouveau mot de passe.";
     return;
   }
   status.textContent = "Patientez…";
@@ -216,29 +247,14 @@ $("#auth-form").addEventListener("submit", async (e) => {
       ? await supabase.auth.signUp({ email, password })
       : await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    status.textContent = error.message;
+    status.textContent = authMessage(error);
     return;
   }
   status.textContent =
     action === "signup" && !data.session ? "Compte créé : confirmez votre adresse via l'e-mail reçu, puis connectez-vous." : "";
 });
 $("#logout").addEventListener("click", () => supabase.auth.signOut());
-$("#upload-local").addEventListener("click", async () => {
-  try {
-    const n = await uploadLocalData();
-    toast(`${n} éléments envoyés vers votre compte`);
-    await refreshAll();
-  } catch (err) {
-    toast("Erreur : " + err.message);
-  }
-});
 
-async function refreshAll() {
-  await loadProfile();
-  renderAccount();
-  const active = document.querySelector(".view.active")?.id.replace("view-", "") ?? "today";
-  go(active);
-}
 
 // ---------- Journal ----------
 const WATER_GOAL = 8;
@@ -837,15 +853,18 @@ $("#weight-list").addEventListener("click", async (e) => {
     const { error } = await supabase.auth.updateUser({ password });
     toast(error ? "Erreur : " + error.message : "Mot de passe modifié");
   });
-  await initStore(() => (refreshCatalog(), refreshAll()));
-  refreshCatalog();
-  await loadProfile();
-  renderAccount();
-  renderSearch();
-  // Raccourcis de l'icône (?view=scan, ?view=weight…)
-  const wanted = new URLSearchParams(location.search).get("view");
-  if (!state.profile) go("profile");
-  else go(["today", "scan", "weight", "profile"].includes(wanted) ? wanted : "today");
+  const wanted = new URLSearchParams(location.search).get("view"); // raccourcis de l'icône
+  const enter = async (view) => {
+    if (!(await applyAuthState())) return;
+    refreshCatalog();
+    await loadProfile();
+    renderAccount();
+    renderSearch();
+    if (!state.profile) go("profile");
+    else go(["today", "scan", "weight", "profile"].includes(view) ? view : "today");
+  };
+  await initStore(() => enter("today"));
+  await enter(wanted);
   setupPwa();
 })();
 
@@ -881,7 +900,10 @@ function setupPwa() {
   });
 
   // Hors-ligne
-  const net = () => ($("#offline-bar").hidden = navigator.onLine);
+  const net = () => {
+    $("#offline-bar").hidden = navigator.onLine;
+    renderAccount();
+  };
   window.addEventListener("online", () => (net(), refreshCatalog()));
   window.addEventListener("offline", net);
   net();

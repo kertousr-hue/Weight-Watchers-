@@ -298,11 +298,12 @@ export async function loadCatalog() {
     if (data.length < 1000) break;
   }
   const foods = rows.map(toFood);
-  prefs.set("catalog", foods); // copie pour le mode hors-ligne
+  if (foods.length) prefs.set("catalog", foods); // copie pour le mode hors-ligne
   return foods;
 }
 export function cachedCatalog() {
-  return prefs.get("catalog", null);
+  const foods = prefs.get("catalog", null);
+  return foods?.length ? foods : null;
 }
 
 // Enregistre un aliment personnel dans la base (compte connecté uniquement).

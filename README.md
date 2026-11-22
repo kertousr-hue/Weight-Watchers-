@@ -12,7 +12,7 @@ Application web pour smartphone (installable sur l'écran d'accueil) qui :
 - permet d'**exporter / importer** une sauvegarde, et de réinitialiser son mot de passe ;
 - suit votre **poids** avec une courbe et votre objectif ;
 - est une **PWA** : installable sur l'écran d'accueil (bouton « Installer » sur Android, guide pour iPhone), icônes adaptatives, raccourcis (Scanner, Poids, Journal), fonctionne **hors-ligne** et propose « Mettre à jour » quand une nouvelle version est publiée ;
-- peut **sauvegarder vos données dans Supabase** (compte e-mail / mot de passe) pour les retrouver sur tous vos appareils. Sans compte, tout reste sur le téléphone.
+- est **connectée à Internet** : un compte (e-mail / mot de passe) est demandé au démarrage et toutes les données sont enregistrées en ligne dans Supabase, pour les retrouver sur tous vos appareils. Les données notées auparavant sur le téléphone sont envoyées en ligne à la première connexion. (Si `config.js` ne contient pas de clé Supabase, l'application fonctionne en local sans compte.)
 
 ## Les points
 

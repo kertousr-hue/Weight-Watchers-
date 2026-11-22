@@ -34,7 +34,21 @@
     Pour installer l'application : touchez <strong>Partager</strong> <span aria-hidden="true">⎋</span> puis <strong>« Sur l'écran d'accueil »</strong>.
     <button class="link" id="ios-hint-close" aria-label="Fermer">✕</button>
   </div>
-  <div id="offline-bar" class="banner muted" hidden>Hors-ligne : vos ajouts sont gardés sur le téléphone.</div>
+  <div id="offline-bar" class="banner muted" hidden>Pas de connexion Internet : reconnectez-vous pour enregistrer vos données.</div>
+
+  <section id="auth-gate" class="gate" hidden>
+    <img src="icons/icon-192.png" alt="" width="88" height="88" />
+    <h2>Bienvenue sur Équilibre</h2>
+    <p class="hint">Connectez-vous pour enregistrer vos repas, votre poids et vos activités en ligne, et les retrouver sur tous vos appareils.</p>
+    <form id="auth-form" class="card grid2">
+      <label class="field full"><span>E-mail</span><input name="email" type="email" autocomplete="email" required /></label>
+      <label class="field full"><span>Mot de passe (6 caractères minimum)</span><input name="password" type="password" minlength="6" autocomplete="current-password" required /></label>
+      <button class="btn primary" value="login">Se connecter</button>
+      <button class="btn" value="signup">Créer un compte</button>
+      <button class="link full" value="reset" formnovalidate>Mot de passe oublié ?</button>
+    </form>
+    <p id="account-status" class="status" role="status"></p>
+  </section>
 
   <main>
     <!-- AUJOURD'HUI -->
@@ -169,23 +183,12 @@
 
       <div class="card" id="account-card">
         <h2>Compte & synchronisation</h2>
-        <div id="account-off">
-          <p class="hint">Sans compte, vos données restent uniquement sur ce téléphone. Avec un compte (Supabase), elles sont sauvegardées et accessibles sur tous vos appareils.</p>
-          <form id="auth-form" class="grid2">
-            <label class="field full"><span>E-mail</span><input name="email" type="email" autocomplete="email" required /></label>
-            <label class="field full"><span>Mot de passe</span><input name="password" type="password" minlength="6" autocomplete="current-password" required /></label>
-            <button class="btn primary" value="login">Se connecter</button>
-            <button class="btn" value="signup">Créer un compte</button>
-            <button class="link full" value="reset" formnovalidate>Mot de passe oublié ?</button>
-          </form>
-        </div>
         <div id="account-on" hidden>
           <p>Connecté : <strong id="account-email"></strong></p>
-          <button class="btn" id="upload-local" hidden>Envoyer les données de ce téléphone vers mon compte</button>
+          <p class="hint">Vos données sont enregistrées en ligne et synchronisées sur tous vos appareils.</p>
           <button class="btn" id="logout">Se déconnecter</button>
         </div>
         <p id="account-disabled" class="hint" hidden>Synchronisation non configurée : ajoutez la clé Supabase dans <code>config.js</code>.</p>
-        <p id="account-status" class="status" role="status"></p>
       </div>
 
       <div class="card">
