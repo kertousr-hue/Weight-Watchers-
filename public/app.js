@@ -842,7 +842,76 @@ $("#weight-list").addEventListener("click", async (e) => {
   await loadProfile();
   renderAccount();
   renderSearch();
+  // Raccourcis de l'icône (?view=scan, ?view=weight…)
+  const wanted = new URLSearchParams(location.search).get("view");
   if (!state.profile) go("profile");
-  else go("today");
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  else go(["today", "scan", "weight", "profile"].includes(wanted) ? wanted : "today");
+  setupPwa();
 })();
+
+// ---------- Application installable (PWA) ----------
+function setupPwa() {
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+  // Bouton « Installer » (Android / Chrome / Edge)
+  let installEvent = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    installEvent = e;
+    $("#install-btn").hidden = false;
+  });
+  $("#install-btn").addEventListener("click", async () => {
+    if (!installEvent) return;
+    installEvent.prompt();
+    await installEvent.userChoice;
+    installEvent = null;
+    $("#install-btn").hidden = true;
+  });
+  window.addEventListener("appinstalled", () => {
+    $("#install-btn").hidden = true;
+    toast("Application installée sur l'écran d'accueil 🎉");
+  });
+
+  // iPhone / iPad : pas de bouton automatique, on explique la marche à suivre
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios && !standalone && !prefs.get("iosHintClosed", false)) $("#ios-hint").hidden = false;
+  $("#ios-hint-close").addEventListener("click", () => {
+    $("#ios-hint").hidden = true;
+    prefs.set("iosHintClosed", true);
+  });
+
+  // Hors-ligne
+  const net = () => ($("#offline-bar").hidden = navigator.onLine);
+  window.addEventListener("online", () => (net(), refreshCatalog()));
+  window.addEventListener("offline", net);
+  net();
+
+  // Service worker + mise à jour
+  if (!("serviceWorker" in navigator)) return;
+  let updateRequested = false;
+  navigator.serviceWorker.register("sw.js").then((reg) => {
+    const offer = (worker) => {
+      $("#update-bar").hidden = false;
+      $("#update-btn").onclick = () => {
+        updateRequested = true;
+        worker.postMessage("skipWaiting");
+      };
+    };
+    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+    reg.addEventListener("updatefound", () => {
+      const w = reg.installing;
+      w?.addEventListener("statechange", () => {
+        if (w.state === "installed" && navigator.serviceWorker.controller) offer(w);
+      });
+    });
+    // Vérifie les mises à jour quand l'application revient au premier plan
+    document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && reg.update().catch(() => {}));
+  }).catch(() => {});
+  // Recharger uniquement après un clic sur « Mettre à jour » (pas à la première installation)
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading || !updateRequested) return;
+    reloading = true;
+    location.reload();
+  });
+}

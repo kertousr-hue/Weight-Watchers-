@@ -1,15 +1,22 @@
 // Cache hors-ligne : l'application et le modèle de reconnaissance sont gardés
 // sur le téléphone après le premier lancement.
-const VERSION = "equilibre-v2";
+const VERSION = "equilibre-v3";
 const SHELL = [
   "./", "index.html", "styles.css", "app.js", "points.js", "foods.js", "store.js", "recognize.js",
-  "config.js", "manifest.webmanifest", "icon.svg", "vendor/supabase.js", "vendor/tf.min.js", "vendor/mobilenet.min.js",
+  "config.js", "manifest.webmanifest", "icon.svg", "icons/icon-192.png", "icons/icon-512.png",
+  "icons/maskable-192.png", "icons/maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png", "vendor/supabase.js", "vendor/tf.min.js", "vendor/mobilenet.min.js",
 ];
 // Hôtes qui servent les fichiers du modèle MobileNet
 const MODEL_HOSTS = ["tfhub.dev", "www.kaggle.com", "storage.googleapis.com", "kaggle.com"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // La nouvelle version attend que l'utilisateur clique « Mettre à jour »
+  // (sauf à la toute première installation, où il n'y a rien à remplacer).
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)));
+});
+
+self.addEventListener("message", (e) => {
+  if (e.data === "skipWaiting") self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
@@ -47,7 +54,7 @@ self.addEventListener("fetch", (e) => {
           if (res.ok) caches.open(VERSION).then((c) => c.put(req, res.clone()));
           return res;
         })
-        .catch(() => caches.match(req).then((r) => r || caches.match("index.html")))
+        .catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match("index.html")))
     );
   }
 });

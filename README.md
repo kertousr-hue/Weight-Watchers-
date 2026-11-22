@@ -11,7 +11,7 @@ Application web pour smartphone (installable sur l'écran d'accueil) qui :
 - affiche le **bilan de la semaine**, la série de jours suivis et la moyenne de points ;
 - permet d'**exporter / importer** une sauvegarde, et de réinitialiser son mot de passe ;
 - suit votre **poids** avec une courbe et votre objectif ;
-- fonctionne **hors-ligne** après le premier lancement ;
+- est une **PWA** : installable sur l'écran d'accueil (bouton « Installer » sur Android, guide pour iPhone), icônes adaptatives, raccourcis (Scanner, Poids, Journal), fonctionne **hors-ligne** et propose « Mettre à jour » quand une nouvelle version est publiée ;
 - peut **sauvegarder vos données dans Supabase** (compte e-mail / mot de passe) pour les retrouver sur tous vos appareils. Sans compte, tout reste sur le téléphone.
 
 ## Les points

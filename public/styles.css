@@ -206,3 +206,12 @@ dialog .row .btn { flex: 1; }
 .glass.full { background: linear-gradient(to top, #5bb4e5 75%, transparent 75%); border-color: #3a95c9; }
 .star { border: none; background: none; font-size: 1.3rem; color: var(--muted); cursor: pointer; padding: 2px 4px; }
 .star.on { color: #e0a100; }
+
+/* PWA */
+.badge.install { border: none; color: #fff; font: inherit; font-size: .75rem; cursor: pointer; background: rgba(255,255,255,.28); }
+.banner {
+  display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 16px; background: var(--accent-soft); color: var(--text); font-size: .88rem; text-align: center;
+}
+.banner.muted { background: var(--line); color: var(--muted); }
+@media (display-mode: standalone) { .topbar { padding-top: calc(10px + env(safe-area-inset-top)); } }

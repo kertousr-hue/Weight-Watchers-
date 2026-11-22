@@ -1,15 +1,28 @@
 {
+  "id": "/",
   "name": "Équilibre – points & poids",
   "short_name": "Équilibre",
   "description": "Suivi alimentaire par points avec reconnaissance des aliments par la caméra.",
   "lang": "fr",
-  "start_url": "./",
+  "dir": "ltr",
+  "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
-  "background_color": "#f4f6f3",
+  "background_color": "#1f7a5c",
   "theme_color": "#1f7a5c",
+  "categories": ["health", "food", "lifestyle"],
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Scanner un aliment", "short_name": "Scanner", "url": "./?view=scan", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Noter mon poids", "short_name": "Poids", "url": "./?view=weight", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Journal du jour", "short_name": "Journal", "url": "./?view=today", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

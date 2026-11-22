@@ -8,15 +8,33 @@
   <title>Équilibre – points & poids</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Équilibre" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="application-name" content="Équilibre" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
     <h1>Équilibre</h1>
-    <span id="sync-badge" class="badge" title="Où sont enregistrées vos données">Local</span>
+    <div class="row">
+      <button id="install-btn" class="badge install" hidden>⬇︎ Installer</button>
+      <span id="sync-badge" class="badge" title="Où sont enregistrées vos données">Local</span>
+    </div>
   </header>
+
+  <div id="update-bar" class="banner" hidden>
+    Nouvelle version disponible.
+    <button class="btn small" id="update-btn">Mettre à jour</button>
+  </div>
+  <div id="ios-hint" class="banner" hidden>
+    Pour installer l'application : touchez <strong>Partager</strong> <span aria-hidden="true">⎋</span> puis <strong>« Sur l'écran d'accueil »</strong>.
+    <button class="link" id="ios-hint-close" aria-label="Fermer">✕</button>
+  </div>
+  <div id="offline-bar" class="banner muted" hidden>Hors-ligne : vos ajouts sont gardés sur le téléphone.</div>
 
   <main>
     <!-- AUJOURD'HUI -->
